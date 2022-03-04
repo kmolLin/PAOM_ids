@@ -1,0 +1,15 @@
+<RCC>
+  <qresource prefix="icon">
+    <file>arrow_left_up.png</file>
+    <file>arrow_leftdown.png</file>
+    <file>arrow_right_down.png</file>
+    <file>arrow_right_up.png</file>
+    <file>control_xy.png</file>
+    <file>arrow-down-a.png</file>
+    <file>arrow-down-b.png</file>
+    <file>arrow-left-b.png</file>
+    <file>arrow-right-b.png</file>
+    <file>arrow-up-a.png</file>
+    <file>arrow-up-b.png</file>
+  </qresource>
+</RCC>
