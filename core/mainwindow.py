@@ -76,12 +76,11 @@ class Thread_count(QThread):
                                       32, 16416, copy=False)
                 frame = np.reshape(self.array, (self.height.value, self.width.value, 4))[:, :, 0:3]
                 # ...resize the image by a half
-                print(frame)
-                qImg = QImage(frame, self.width.value, self.height.value, QImage.Format_RGB32) # Format_Grayscale8
+                qImg = QImage(frame, self.width.value, self.height.value, QImage.Format_Grayscale8) # Format_Grayscale8
                 # qImg = qImg.scaled(int(self.width.value / 2), int(self.height.value / 2))
-                qpxmp = QPixmap.fromImage(qImg)
+                # qpxmp = QPixmap.fromImage(qImg)
                 # print(qpxmp)
-                self.test_signal.emit(qpxmp)
+                # self.test_signal.emit(qpxmp)
                 ueye.is_UnlockSeqBuf(self.hCam, iImageID, pBuffer)
                 count = count + 1
 
