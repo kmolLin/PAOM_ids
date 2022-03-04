@@ -72,15 +72,16 @@ class Thread_count(QThread):
             if nRet == ueye.IS_SUCCESS or dwRet == win32event.WAIT_OBJECT_0:
 
                 # TODO get data transform self.pcImageMemory
+
                 self.array = ueye.get_data(self.m_vpcSeqImgMem[count - 1], self.width, self.height,
-                                      32, 16416, copy=False)
-                frame = np.reshape(self.array, (self.height.value, self.width.value, 4))[:, :, 0:3]
+                                      24, 12312, copy=False)
+                frame = np.reshape(self.array, (self.height.value, self.width.value, 3))
                 # ...resize the image by a half
-                qImg = QImage(frame, self.width.value, self.height.value, QImage.Format_Grayscale8) # Format_Grayscale8
+                qImg = QImage(frame, self.width.value, self.height.value, QImage.Format_RGB888) # Format_Grayscale8
                 # qImg = qImg.scaled(int(self.width.value / 2), int(self.height.value / 2))
-                # qpxmp = QPixmap.fromImage(qImg)
+                qpxmp = QPixmap.fromImage(qImg)
                 # print(qpxmp)
-                # self.test_signal.emit(qpxmp)
+                self.test_signal.emit(qpxmp)
                 ueye.is_UnlockSeqBuf(self.hCam, iImageID, pBuffer)
                 count = count + 1
 
@@ -125,6 +126,7 @@ class MainWindow(QMainWindow):
         # frame
         self.liveframe = None
         self.bufeersize = None
+        ueye.is_SetColorMode(self.hCam, ueye.IS_CM_RGB8_PACKED)
         self.m_viSeqMemID = []
         self.m_vpcSeqImgMem = []
         self.signal1.connect(self.update_image)
@@ -139,7 +141,7 @@ class MainWindow(QMainWindow):
         self.pitch = ueye.INT()
         self.nBitsPerPixel = ueye.INT(24)  # 24: bits per pixel for color mode; take 8 bits per pixel for monochrome
         channels = 3  # 3: channels for color mode(RGB); take 1 channel for monochrome
-        self.m_nColorMode = ueye.INT(32)  # Y8/RGB16/RGB24/REG32
+        self.m_nColorMode = ueye.INT(24)  # Y8/RGB16/RGB24/REG32
         self.bytes_per_pixel = int(self.nBitsPerPixel / 8)
         self.m_buffer_init = 0
         self.fps_second = ueye.DOUBLE()
@@ -208,7 +210,9 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def on_testbtn_clicked(self):
         print(123)
+        # print(ueye.is_SetColorMode(self.hCam, ueye.IS_GET_COLOR_MODE))
         self.all_process()
+
         # load the config from yaml
         # expos_time = 12.46
         # clock_time = 474
@@ -235,7 +239,7 @@ class MainWindow(QMainWindow):
     def all_process(self):
         """This function connect all process"""
         # Build Camera Sequence
-        self.bufeersize = 10 # self.number_of_shots.value()
+        self.bufeersize = 200 # self.number_of_shots.value()
         bRet = self.camSeqBuild()
 
         if bRet is True:
