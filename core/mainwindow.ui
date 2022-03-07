@@ -843,14 +843,40 @@
         <widget class="QPushButton" name="testbtn">
          <property name="geometry">
           <rect>
-           <x>770</x>
-           <y>220</y>
+           <x>760</x>
+           <y>190</y>
            <width>93</width>
            <height>28</height>
           </rect>
          </property>
          <property name="text">
-          <string>PushButton</string>
+          <string>queue mode</string>
+         </property>
+        </widget>
+        <widget class="QPushButton" name="openlive">
+         <property name="geometry">
+          <rect>
+           <x>750</x>
+           <y>240</y>
+           <width>93</width>
+           <height>28</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>open live</string>
+         </property>
+        </widget>
+        <widget class="QPushButton" name="close_live">
+         <property name="geometry">
+          <rect>
+           <x>750</x>
+           <y>290</y>
+           <width>93</width>
+           <height>28</height>
+          </rect>
+         </property>
+         <property name="text">
+          <string>close live</string>
          </property>
         </widget>
        </widget>

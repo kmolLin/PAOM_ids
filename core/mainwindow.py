@@ -11,6 +11,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtGui import QIcon
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import pyqtSlot
+from ids_peak import ids_peak
 
 import platform
 import numpy as np
@@ -59,6 +60,7 @@ class Thread_show_image(QThread):
         nRet = ueye.is_InquireImageMem(self.hCam, self.pcImageMemory, self.MemID, self.width, self.height, self.nBitsPerPixel, self.pitch)
         self.bytes_per_pixel = int(nBitsPerPixel / 8)
 
+        print(self.pcImageMemory, self.MemID)
         if nRet == ueye.IS_SUCCESS:
             self.k = True
         else:
@@ -83,6 +85,7 @@ class Thread_show_image(QThread):
 
     def stop_thr(self):
         self.stop_thread = True
+        Ret = ueye.is_FreeImageMem(self.hCam, self.pcImageMemory, self.MemID)
 
 
 class Thread_count(QThread):
@@ -97,6 +100,8 @@ class Thread_count(QThread):
         self.m_vpcSeqImgMem = m_vpcSeqImgMem
         self.bufeersize = bufeersize
         self.nBitsPerPixel = nBitsPerPixel
+        self.pitch = ueye.INT()
+        print(self.m_vpcSeqImgMem[0], bufeersize)
 
     def run(self):
         width = self.sInfo.nMaxWidth
@@ -135,7 +140,6 @@ class Thread_count(QThread):
                 self.array = ueye.get_data(self.m_vpcSeqImgMem[count - 1], self.width, self.height,
                                       24, 12312, copy=False)
                 frame = np.reshape(self.array, (self.height.value, self.width.value, 3))
-                print(frame)
                 # ...resize the image by a half
                 qImg = QImage(frame, self.width.value, self.height.value, QImage.Format_RGB888) # Format_Grayscale8
                 # qImg = qImg.scaled(int(self.width.value / 2), int(self.height.value / 2))
@@ -155,8 +159,8 @@ class Thread_count(QThread):
 
             if count >= self.bufeersize:
                 print(f"this is test {len(self.m_vpcSeqImgMem)}")
-                ueye.is_FreezeVideo(self.hCam, ueye.IS_WAIT)
-                # ueye.is_FreezeVideo(self.hCam, ueye.IS_DONT_WAIT)
+                # ueye.is_FreezeVideo(self.hCam, ueye.IS_WAIT)
+                ueye.is_FreezeVideo(self.hCam, ueye.IS_DONT_WAIT)
                 break
             # i = i + 1
         ueye.is_DisableEvent(self.hCam, ueye.IS_SET_EVENT_FRAME)
@@ -190,11 +194,11 @@ class MainWindow(QMainWindow):
         ueye.is_SetColorMode(self.hCam, ueye.IS_CM_RGB8_PACKED)
         self.m_viSeqMemID = []
         self.m_vpcSeqImgMem = []
-        self.signal1.connect(self.update_image)
+        # self.signal1.connect(self.update_image)
 
         self.image_thread = Thread_show_image(self.hCam, self.width, self.height, self.sInfo, self.nBitsPerPixel)
-        self.image_thread.start()
-        self.image_thread.send_image.connect(self.update_image)
+        # self.image_thread.start()
+        # self.image_thread.send_image.connect(self.update_image)
 
     def _init_ids_camera(self, camera_ids):
         self.hCam = ueye.HIDS(camera_ids)  # 0: first available camera;  1-254: The camera with the specified camera ID
@@ -252,6 +256,12 @@ class MainWindow(QMainWindow):
 
         # allocate buffer (memory) in a for-loop
         for i in range(0, nmaxbuffer):
+
+            # ueye.is_AllocImageMem(self.hCam, self.width, self.height, self.nBitsPerPixel, self.pcImageMemory,
+            #                              self.MemID)
+            # ueye.is_SetImageMem(self.hCam, self.pcImageMemory, self.MemID)
+            # ueye.is_InquireImageMem(self.hCam, self.pcImageMemory, self.MemID, self.width, self.height,
+            #                                self.nBitsPerPixel, self.pitch)
             iImageID = ueye.c_int(0)
             pcImhMem = ueye.c_mem_p()
             nRet = ueye.is_AllocImageMem(self.hCam, nAllocSizeX, nAllocSizeY, self.nBitsPerPixel, pcImhMem, iImageID)
@@ -278,33 +288,22 @@ class MainWindow(QMainWindow):
         # print(ueye.is_SetColorMode(self.hCam, ueye.IS_GET_COLOR_MODE))
         self.all_process()
 
-        # load the config from yaml
-        # expos_time = 12.46
-        # clock_time = 474
-        # capcture_img = 300
-        # use_automodel = 80
-        # open_ai_classifier = False
-        # save_path = ""
-        # detection_folder = ""
-        # fps = ""
-        # test_use = ""
-        #
-        #
-        # # setting all camera config from yaml
-        # gain_value = int(0)
-        # clock_time0_p = ueye.INT(0)
-        # clock_time1 = ueye.int(clock_time)  # clock time set
-        #
-        # exposure_value = ueye.double(expos_time)  # uints ns
-        # # ueye.is_SetHWGainFactor(self.hCam, ueye.IS_SET_MASTER_GAIN_FACTOR, gain_value)
-        #
-        # # self.test_thread = Thread_count(self.hCam, self.width, self.height, self.sInfo, self.m_vpcSeqImgMem,
-        # #                                 self.bufeersize, self.nBitsPerPixel)
+    @pyqtSlot()
+    def on_openlive_clicked(self):
+        print("open live mode")
+        self.image_thread = Thread_show_image(self.hCam, self.width, self.height, self.sInfo, self.nBitsPerPixel)
+        self.image_thread.start()
+        self.image_thread.send_image.connect(self.update_image)
+
+    @pyqtSlot()
+    def on_close_live_clicked(self):
+        print("close the live mode")
+        self.image_thread.stop_thr()
+        self.image_thread.exec_()
 
     def all_process(self):
         """This function connect all process"""
         # Build Camera Sequence
-        self.image_thread.stop_thr()
         self.bufeersize = 100 # self.number_of_shots.value()
         bRet = self.camSeqBuild()
 
@@ -327,19 +326,12 @@ class MainWindow(QMainWindow):
         self.test_thread.start()
 
     def savve(self):
-        print(len(self.m_vpcSeqImgMem))
-        self.CamSeqKill()
-        self.image_thread.stop_thr()
-
         # save image
         folder_name = datetime.datetime.now().strftime("%Y_%m_%d-%H%M")
         os.mkdir(f"{folder_name}")
         self.save_img(self.m_vpcSeqImgMem, self.m_viSeqMemID, folder_name)
 
-        self.image_thread = Thread_show_image(self.hCam, self.width, self.height, self.sInfo, self.nBitsPerPixel)
-        ueye.is_CaptureVideo(self.hCam, ueye.IS_DONT_WAIT)
-        self.image_thread.start()
-        self.image_thread.send_image.connect(self.update_image)
+        self.CamSeqKill()
 
     def save_img(self, mem, iImageID, folder_name: str):
         print(len(mem))
