@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-
-__author__ = "Yu-Sheng Lin"
-__copyright__ = "Copyright (C) 2016-2022"
-__license__ = "AGPL"
-__email__ = "pyquino@gmail.com"
-
 from PyQt5.QtCore import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -31,6 +24,7 @@ except ImportError:
 
 class Thread_show_image(QThread):
     send_image = pyqtSignal(QPixmap)
+    """這邊主要是主畫面顯示使用，live mode 開啟相機"""
 
     def __init__(self, hcam, width, height, sInfo, nBitsPerPixel, parent=None):
         QThread.__init__(self, parent)
@@ -60,7 +54,6 @@ class Thread_show_image(QThread):
         nRet = ueye.is_InquireImageMem(self.hCam, self.pcImageMemory, self.MemID, self.width, self.height, self.nBitsPerPixel, self.pitch)
         self.bytes_per_pixel = int(nBitsPerPixel / 8)
 
-
     def run(self):
         while True:
             array = ueye.get_data(self.pcImageMemory, self.width, self.height, self.nBitsPerPixel, self.pitch, copy=False)
@@ -80,6 +73,8 @@ class Thread_show_image(QThread):
 
 
 class Thread_count(QThread):
+    """這邊是我使用用來進行is_AddToSequence 加入使用
+    這邊我做了一個waitevent 用來等存滿100張圖片到記憶體裡面"""
     test_signal = pyqtSignal(QPixmap)
 
     def __init__(self, hcam, width, height, sInfo, m_vpcSeqImgMem, bufeersize, nBitsPerPixel, parent=None):
@@ -159,36 +154,18 @@ class Thread_count(QThread):
             ctypes.windll.Kernel32.CloseHandle(pEvent_FL)
 
 
-class MainWindow(QMainWindow):
+class ABC:
 
-    signal1 = pyqtSignal()
+    def __init__(self, parent=None):
+        super(ABC, self).__init__()
 
-    def __init__(self, parent = None):
-        super(MainWindow, self).__init__()
-        loadUi("core/mainwindow.ui", self)
-        # self.__init_setting()
-        # self._add_action()
-        self.show()
-
-        self._init_ids_camera(0)
-        nRet = ueye.is_InitCamera(self.hCam, None)
-        if nRet == 3:
-            print("Do not find the camera")
-            print("Please insert the cable to the computer")
-            exit()
-        # frame
-        self.liveframe = None
-        self.bufeersize = None
+        """做相機的設定"""
         ueye.is_SetColorMode(self.hCam, ueye.IS_CM_RGB8_PACKED)
         self.m_viSeqMemID = []
         self.m_vpcSeqImgMem = []
-        # self.signal1.connect(self.update_image)
-
-        self.image_thread = Thread_show_image(self.hCam, self.width, self.height, self.sInfo, self.nBitsPerPixel)
-        # self.image_thread.start()
-        # self.image_thread.send_image.connect(self.update_image)
 
     def _init_ids_camera(self, camera_ids):
+        """初始化相機參數"""
         self.hCam = ueye.HIDS(camera_ids)  # 0: first available camera;  1-254: The camera with the specified camera ID
         self.sInfo = ueye.SENSORINFO()
         self.cInfo = ueye.CAMINFO()
@@ -235,10 +212,6 @@ class MainWindow(QMainWindow):
 
             iImageID = ueye.c_int(0)
             pcImhMem = ueye.c_mem_p()
-            # ueye.is_AllocImageMem(self.hCam, self.width, self.height, self.nBitsPerPixel, pcImhMem,
-            #                              iImageID)
-            # ueye.is_SetImageMem(self.hCam, pcImhMem, iImageID)
-            # ueye.is_InquireImageMem(self.hCam, pcImhMem, iImageID, self.width, self.height, self.nBitsPerPixel, self.pitch)
             nRet = ueye.is_AllocImageMem(self.hCam, self.width, self.height, self.nBitsPerPixel, pcImhMem, iImageID)
             if nRet != ueye.IS_SUCCESS:
                 break
@@ -246,94 +219,12 @@ class MainWindow(QMainWindow):
             if nRet != ueye.IS_SUCCESS:
                 ueye.is_FreeImageMem(self.hCam, pcImhMem, iImageID)
                 break
-
+            """做好sequence 後進行thread 拍攝"""
             self.m_viSeqMemID.append(iImageID)
             self.m_vpcSeqImgMem.append(pcImhMem)
 
-        # nRet = ueye.is_InitImageQueue(hCam, 0)
         if nRet == ueye.IS_SUCCESS:
             bRet = True
         else:
             bRet = False
         return bRet
-
-    @pyqtSlot()
-    def on_testbtn_clicked(self):
-        print(123)
-        # print(ueye.is_SetColorMode(self.hCam, ueye.IS_GET_COLOR_MODE))
-        self.all_process()
-
-    @pyqtSlot()
-    def on_openlive_clicked(self):
-        print("open live mode")
-        self.image_thread = Thread_show_image(self.hCam, self.width, self.height, self.sInfo, self.nBitsPerPixel)
-        self.image_thread.start()
-        self.image_thread.send_image.connect(self.update_image)
-
-    @pyqtSlot()
-    def on_close_live_clicked(self):
-        print("close the live mode")
-        self.image_thread.stop_thr()
-        self.image_thread.exec_()
-
-    def all_process(self):
-        """This function connect all process"""
-        # Build Camera Sequence
-        self.bufeersize = 100 # self.number_of_shots.value()
-        bRet = self.camSeqBuild()
-
-        if bRet is True:
-            print("IS_SUCCESS")
-        else:
-            self.CamSeqKill()
-            ueye.is_ExitCamera(self.hCam)
-            print("Error")
-
-        # build thread
-        # t = threading.Thread(target=self.job)
-
-        ueye.is_CaptureVideo(self.hCam, ueye.IS_DONT_WAIT)
-
-        self.test_thread = Thread_count(self.hCam, self.width, self.height, self.sInfo, self.m_vpcSeqImgMem,
-                                        self.bufeersize, self.nBitsPerPixel)
-        self.test_thread.test_signal.connect(self.update_image)
-        self.test_thread.finished.connect(self.savve)
-        self.test_thread.start()
-
-    def savve(self):
-        # save image
-        folder_name = datetime.datetime.now().strftime("%Y_%m_%d-%H%M")
-        # os.mkdir(f"{folder_name}")
-        # self.save_img(self.m_vpcSeqImgMem, self.m_viSeqMemID, folder_name)
-
-        self.CamSeqKill()
-
-    def save_img(self, mem, iImageID, folder_name: str):
-        print(len(mem))
-        plast = ueye.c_mem_p()
-
-        for i in range(0, len(mem)):
-            # process the pointer memory translate to image
-            # TODO: add process on get data form image
-
-            parameter = ueye.IMAGE_FILE_PARAMS(ppcImageMem=mem[i], pnImageID=iImageID[i])
-            parameter.pwchFileName = f"{folder_name}/{i}.jpeg"
-            parameter.nQuality = 0
-            parameter.nFileType = ueye.IS_IMG_JPG
-            ueye.is_ImageFile(self.hCam, ueye.IS_IMAGE_FILE_CMD_SAVE, parameter, ueye.sizeof(parameter))
-
-    def CamSeqKill(self):
-        # ueye.is_ExitImageQueue(hCam)
-        ueye.is_ClearSequence(self.hCam)
-        # Free buffer
-        for i in range(0, len(self.m_viSeqMemID)):
-            Ret = ueye.is_FreeImageMem(self.hCam, self.m_vpcSeqImgMem[i], self.m_viSeqMemID[i])
-        self.m_vpcSeqImgMem.clear()
-        self.m_viSeqMemID.clear()
-
-    def update_image(self, data):
-        self.image1.setPixmap(data)
-        self.image1.setScaledContents(True)
-
-    def closeEvent(self, *args, **kwargs):
-        self.image_thread.stop_thr()
