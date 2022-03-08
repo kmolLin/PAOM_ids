@@ -110,7 +110,9 @@ class Thread_count(QThread):
                 pEvent_FL = ueye.c_void_p(hEvent_FL)
                 # hEvent = ueye.c_void_p()
                 ueye.is_InitEvent(self.hCam, pEvent_FL, ueye.IS_SET_EVENT_FRAME)
-            except ImportError: pass
+            except ImportError:
+                print("error")
+                pass
         while True:
             iImageID = ueye.c_int(0)
             pBuffer = ueye.c_mem_p()
@@ -235,10 +237,7 @@ class MainWindow(QMainWindow):
 
             iImageID = ueye.c_int(0)
             pcImhMem = ueye.c_mem_p()
-            # ueye.is_AllocImageMem(self.hCam, self.width, self.height, self.nBitsPerPixel, pcImhMem,
-            #                              iImageID)
-            # ueye.is_SetImageMem(self.hCam, pcImhMem, iImageID)
-            # ueye.is_InquireImageMem(self.hCam, pcImhMem, iImageID, self.width, self.height, self.nBitsPerPixel, self.pitch)
+
             nRet = ueye.is_AllocImageMem(self.hCam, self.width, self.height, self.nBitsPerPixel, pcImhMem, iImageID)
             if nRet != ueye.IS_SUCCESS:
                 break
@@ -275,6 +274,7 @@ class MainWindow(QMainWindow):
         print("close the live mode")
         self.image_thread.stop_thr()
         self.image_thread.exec_()
+        ueye.is_ExitCamera(self.hCam)
 
     def all_process(self):
         """This function connect all process"""
@@ -291,8 +291,8 @@ class MainWindow(QMainWindow):
 
         # build thread
         # t = threading.Thread(target=self.job)
-
         ueye.is_CaptureVideo(self.hCam, ueye.IS_DONT_WAIT)
+        # ueye.is_CaptureVideo(self.hCam, ueye.IS_DONT_WAIT)
 
         self.test_thread = Thread_count(self.hCam, self.width, self.height, self.sInfo, self.m_vpcSeqImgMem,
                                         self.bufeersize, self.nBitsPerPixel)
