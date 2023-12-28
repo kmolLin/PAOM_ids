@@ -33,6 +33,7 @@ except ImportError:
 
 class CameraThread(QThread):
     update_frame = pyqtSignal(QPixmap)
+    update_frame_array = pyqtSignal(np.ndarray)
 
     def __init__(self, camera_id=0):
         super(CameraThread, self).__init__()
@@ -53,12 +54,10 @@ class CameraThread(QThread):
                 # ...reshape it in an numpy array...
                 frame = np.reshape(array, (self.height.value, self.width.value, self.bytes_per_pixel))
                 qImg = self.convert_to_qimage(frame)
-
-                # qImg = QImage(frame.data, self.width.value, self.height.value, self.bytes_per_pixel, QImage.Format_ARGB32)
-                # qImg = qImg.scaled(int(self.width.value / 2), int(self.height.value / 2))
                 qpxmp = QPixmap.fromImage(qImg)
 
                 self.update_frame.emit(qpxmp)
+                self.update_frame_array.emit(frame)
 
         self.stop_camera()
 
@@ -232,6 +231,96 @@ class CameraThread(QThread):
     def stop(self):
         self.running = False
 
+#
+# class Thread_show_image(QThread):
+#     send_image = pyqtSignal(QPixmap)
+#
+#     def __init__(self, hcam, width, height, sInfo, nBitsPerPixel, parent=None):
+#         QThread.__init__(self, parent)
+#         self.hCam = hcam
+#         self.width = width
+#         self.height = height
+#         self.sInfo = sInfo
+#         self.nBitsPerPixel = nBitsPerPixel
+#         self.pcImageMemory = ueye.c_mem_p()
+#         self.MemID = ueye.int()
+#         self.pitch = ueye.INT()
+#         self.stop_thread = False
+#         self.flag_save = False
+#
+#         init_events = ueye.IS_INIT_EVENT()
+#         init_events.nEvent = ueye.IS_SET_EVENT_FRAME
+#         init_events.bManualReset = False
+#         init_events.bInitialState = False
+#         ueye.is_Event(self.hCam, ueye.IS_EVENT_CMD_INIT, init_events, ueye.sizeof(init_events))
+#
+#         events = ueye.c_uint(ueye.IS_SET_EVENT_FRAME)
+#         ueye.is_Event(self.hCam, ueye.IS_EVENT_CMD_ENABLE, events, ueye.sizeof(events))
+#
+#         self.wait_events = ueye.IS_WAIT_EVENT()
+#         self.wait_events.nEvent = ueye.IS_SET_EVENT_FRAME
+#         self.wait_events.nCount = 2
+#         self.wait_events.nTimeoutMilliseconds = 1000
+#         self.wait_events.nSignaled = 0
+#         self.wait_events.nSetCount = 0
+#         self.bytes_per_pixel = int(nBitsPerPixel / 8)
+#
+#         nRet = ueye.is_AllocImageMem(self.hCam, width, height, nBitsPerPixel, self.pcImageMemory, self.MemID)
+#
+#         if nRet != ueye.IS_SUCCESS:
+#             print("is_AllocImageMem ERROR")
+#         else:
+#             # Makes the specified image memory the active memory
+#             nRet = ueye.is_SetImageMem(self.hCam, self.pcImageMemory, self.MemID)
+#             if nRet != ueye.IS_SUCCESS:
+#                 print("is_SetImageMem ERROR")
+#             else:
+#                 # Set the desired color mode
+#                 # nRet = ueye.is_SetColorMode(self.hCam, ueye.int(0))
+#                 nRet = ueye.is_SetColorMode(self.hCam, ueye.IS_CM_BGRA8_PACKED)
+#
+#         nRet = ueye.is_CaptureVideo(self.hCam, ueye.IS_DONT_WAIT)
+#         if nRet != ueye.IS_SUCCESS:
+#             print("is_CaptureVideo ERROR")
+#
+#         nRet = ueye.is_InquireImageMem(self.hCam, self.pcImageMemory, self.MemID, width, height, nBitsPerPixel, self.pitch)
+#         if nRet != ueye.IS_SUCCESS:
+#             print("is_InquireImageMem ERROR")
+#
+#     def continue_save_img(self):
+#         self.tmp = []
+#         self.flag_save = True
+#         self.max_img = 5
+#
+#     def save_img(self):
+#         for i in range(len(self.tmp)):
+#             cv2.imwrite(f"{i}.jpg", self.tmp[i])
+#
+#     def run(self):
+#
+#         while True:
+#             ret = ueye.is_Event(self.hCam, ueye.IS_EVENT_CMD_WAIT, self.wait_events, ueye.sizeof(self.wait_events))
+#             if (ueye.IS_SET_EVENT_FRAME == self.wait_events.nSignaled):
+#                 array = ueye.get_data(self.pcImageMemory, self.width, self.height, self.nBitsPerPixel, self.pitch, copy=False)
+#                 frame = np.reshape(array, (self.height.value, self.width.value, self.bytes_per_pixel))
+#                 # print((self.height.value, self.width.value, self.bytes_per_pixel))
+#                 qImg = QImage(frame, self.width.value, self.height.value, QImage.Format_RGB888)
+#                 qImg = qImg.scaled(int(self.width.value / 2), int(self.height.value / 2))
+#                 qpxmp = QPixmap.fromImage(qImg)
+#                 if self.flag_save:
+#                     self.tmp.append(frame)
+#                     if len(self.tmp) > self.max_img:
+#                         self.flag_save = False
+#                         self.save_img()
+#                 self.send_image.emit(qpxmp)
+#                 if self.stop_thread:
+#                     break
+#                 self.wait(200)
+#
+#     def stop_thr(self):
+#         self.stop_thread = True
+#         # Ret = ueye.is_FreeImageMem(self.hCam, self.pcImageMemory, self.MemID)
+
 
 class MainWindow(QMainWindow):
 
@@ -249,13 +338,15 @@ class MainWindow(QMainWindow):
         # ueye.is_SetColorMode(self.hCam, ueye.IS_CM_RGB8_PACKED)
         self.m_viSeqMemID = []
         self.m_vpcSeqImgMem = []
+        self.current_image = None
         # self.labeltest.show()
 
 
     @pyqtSlot()
     def on_testbtn_clicked(self):
-        print(123)
-        self.image_thread.continue_save_img()
+        print("current data")
+        print(self.current_image.shape)
+        print(self.current_image)
         # self.all_process()
 
     @pyqtSlot()
@@ -263,23 +354,17 @@ class MainWindow(QMainWindow):
         print("open live mode")
         self.camera_thread = CameraThread(0)
         self.camera_thread.update_frame.connect(self.update_image)
+        self.camera_thread.update_frame_array.connect(self.update_img_data)
         self.camera_thread.start()
-        # self.image_thread = Thread_show_image(self.hCam, self.width, self.height, self.sInfo, self.nBitsPerPixel)
-        # self.image_thread = Thread_show_image(self.hCam, self.width, self.height, self.nBitsPerPixel, self.pcImageMemory, self.MemID)
+
         print("Process")
-        # print(self.hCam, self.width, self.height, self.sInfo, self.nBitsPerPixel)
-        # self.image_thread.start()
-        # self.image_thread.send_image.connect(self.update_image)
 
     @pyqtSlot()
     def on_close_live_clicked(self):
         print("close the live mode")
         self.camera_thread.stop()
         print("Close event")
-        # self.camera_thread.wait()
-        # self.image_thread.stop_thr()
-        # self.image_thread.exec_()
-        # ueye.is_ExitCamera(self.hCam)
+
 
     def all_process(self):
         """This function connect all process"""
@@ -331,8 +416,13 @@ class MainWindow(QMainWindow):
     def update_image(self, data):
         self.image1.setPixmap(data)
         self.image1.setScaledContents(True)
-        # self.labeltest.setPixmap(data)
 
+    def update_img_data(self, img_data):
+        self.current_image = img_data
 
-    # def closeEvent(self, *args, **kwargs):
-    #     self.image_thread.stop_thr()
+    def closeEvent(self, *args, **kwargs):
+       if self.camera_thread.isRunning():
+           self.camera_thread.stop()
+       else:
+           pass
+       # self.image_thread.stop_thr()
