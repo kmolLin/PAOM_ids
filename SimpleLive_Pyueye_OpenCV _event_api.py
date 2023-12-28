@@ -56,9 +56,10 @@ rectAOI = ueye.IS_RECT()
 pitch = ueye.INT()
 nBitsPerPixel = ueye.INT(24)    #24: bits per pixel for color mode; take 8 bits per pixel for monochrome
 channels = 3                    #3: channels for color mode(RGB); take 1 channel for monochrome
-m_nColorMode = ueye.INT()		# Y8/RGB16/RGB24/REG32
+m_nColorMode = ueye.INT(0)		# Y8/RGB16/RGB24/REG32
 bytes_per_pixel = int(nBitsPerPixel / 8)
 now=ctypes.c_uint()
+ueye.IS_CM_BGRA8_PACKED
 #=ueye.UEYE_AUTO_INFO()
 
 #---------------------------------------------------------------------------------------------------------------------------------------
@@ -145,12 +146,11 @@ print("Maximum image width:\t", width)
 print("Maximum image height:\t", height)
 print()
 
-
-
 #---------------------------------------------------------------------------------------------------------------------------------------
 
 # Allocates an image memory for an image having its dimensions defined by width and height and its color depth defined by nBitsPerPixel
 nRet = ueye.is_AllocImageMem(hCam, width, height, nBitsPerPixel, pcImageMemory, MemID)
+print(hCam, width, height, nBitsPerPixel, pcImageMemory, MemID)
 if nRet != ueye.IS_SUCCESS:
     print("is_AllocImageMem ERROR")
 else:

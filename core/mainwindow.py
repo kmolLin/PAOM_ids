@@ -31,30 +31,178 @@ except ImportError:
     print("Please use 'pip install pyueye' to install modules")
 
 
-class Thread_show_image(QThread):
-    send_image = pyqtSignal(QPixmap)
+class CameraThread(QThread):
+    update_frame = pyqtSignal(QPixmap)
 
-    def __init__(self, hcam, width, height, sInfo, nBitsPerPixel, parent=None):
-        QThread.__init__(self, parent)
-        self.hCam = hcam
-        self.width = width
-        self.height = height
-        self.sInfo = sInfo
-        self.nBitsPerPixel = nBitsPerPixel
-        self.pcImageMemory = ueye.c_mem_p()
-        self.MemID = ueye.int()
-        self.pitch = ueye.INT()
-        self.stop_thread = False
-        self.flag_save = False
+    def __init__(self, camera_id=0):
+        super(CameraThread, self).__init__()
+        self.hCam = ueye.HIDS(camera_id)
+        self.running = False
+
+    def run(self):
+        self.init_camera()
+        self.running = True
+
+        while self.running:
+            # frame = self.capture_frame()
+            ret = ueye.is_Event(self.hCam, ueye.IS_EVENT_CMD_WAIT, self.wait_events, ueye.sizeof(self.wait_events))
+            if (ueye.IS_SET_EVENT_FRAME == self.wait_events.nSignaled) or frame is not None:
+                # ...extract the data of our image memory
+                array = ueye.get_data(self.pcImageMemory, self.width, self.height, self.nBitsPerPixel, self.pitch, copy=False)
+                # bytes_per_pixel = int(nBitsPerPixel / 8)
+                # ...reshape it in an numpy array...
+                frame = np.reshape(array, (self.height.value, self.width.value, self.bytes_per_pixel))
+                qImg = self.convert_to_qimage(frame)
+
+                # qImg = QImage(frame.data, self.width.value, self.height.value, self.bytes_per_pixel, QImage.Format_ARGB32)
+                # qImg = qImg.scaled(int(self.width.value / 2), int(self.height.value / 2))
+                qpxmp = QPixmap.fromImage(qImg)
+
+                self.update_frame.emit(qpxmp)
+
+        self.stop_camera()
+
+    def convert_to_qimage(self, frame):
+        height, width, channels = frame.shape
+        bytes_per_line = channels * width
+        q_image = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB32)
+        # q_image.save("test.jpg")
+        return q_image
+
+    def init_camera(self):
+
+        hCam = self.hCam  # 0: first available camera;  1-254: The camera with the specified camera ID
+        sInfo = ueye.SENSORINFO()
+        cInfo = ueye.CAMINFO()
+        pcImageMemory = ueye.c_mem_p()
+        MemID = ueye.int()
+        rectAOI = ueye.IS_RECT()
+        pitch = ueye.INT()
+        nBitsPerPixel = ueye.INT(24)  # 24: bits per pixel for color mode; take 8 bits per pixel for monochrome
+        channels = 3  # 3: channels for color mode(RGB); take 1 channel for monochrome
+        m_nColorMode = ueye.INT()  # Y8/RGB16/RGB24/REG32
+        bytes_per_pixel = int(nBitsPerPixel / 8)
+        now = ctypes.c_uint()
+        # =ueye.UEYE_AUTO_INFO()
+
+        # ---------------------------------------------------------------------------------------------------------------------------------------
+        print("START")
+        print()
+
+        # Starts the driver and establishes the connection to the camera
+        nRet = ueye.is_InitCamera(hCam, None)
+        if nRet != ueye.IS_SUCCESS:
+            print("is_InitCamera ERROR")
+
+        # Reads out the data hard-coded in the non-volatile camera memory and writes it to the data structure that cInfo points to
+        nRet = ueye.is_GetCameraInfo(hCam, cInfo)
+        if nRet != ueye.IS_SUCCESS:
+            print("is_GetCameraInfo ERROR")
+
+        # You can query additional information about the sensor type used in the camera
+        nRet = ueye.is_GetSensorInfo(hCam, sInfo)
+        if nRet != ueye.IS_SUCCESS:
+            print("is_GetSensorInfo ERROR")
+
+        nRet = ueye.is_ResetToDefault(hCam)
+        if nRet != ueye.IS_SUCCESS:
+            print("is_ResetToDefault ERROR")
+
+        # Set display mode to DIB
+        nRet = ueye.is_SetDisplayMode(hCam, ueye.IS_SET_DM_DIB)
+
+        # Set the right color mode
+        if int.from_bytes(sInfo.nColorMode.value, byteorder='big') == ueye.IS_COLORMODE_BAYER:
+            # setup the color depth to the current windows setting
+            ueye.is_GetColorDepth(hCam, nBitsPerPixel, m_nColorMode)
+            bytes_per_pixel = int(nBitsPerPixel / 8)
+            print("IS_COLORMODE_BAYER: ", )
+            print("\tm_nColorMode: \t\t", m_nColorMode)
+            print("\tnBitsPerPixel: \t\t", nBitsPerPixel)
+            print("\tbytes_per_pixel: \t\t", bytes_per_pixel)
+            print()
+
+        elif int.from_bytes(sInfo.nColorMode.value, byteorder='big') == ueye.IS_COLORMODE_CBYCRY:
+            # for color camera models use RGB32 mode
+
+            nBitsPerPixel = ueye.INT(32)
+            bytes_per_pixel = int(nBitsPerPixel / 8)
+            print("IS_COLORMODE_CBYCRY: ", )
+            print("\tm_nColorMode: \t\t", m_nColorMode)
+            print("\tnBitsPerPixel: \t\t", nBitsPerPixel)
+            print("\tbytes_per_pixel: \t\t", bytes_per_pixel)
+            print()
+
+        elif int.from_bytes(sInfo.nColorMode.value, byteorder='big') == ueye.IS_COLORMODE_MONOCHROME:
+            # for color camera models use RGB32 mode
+            m_nColorMode = ueye.IS_CM_MONO8
+            nBitsPerPixel = ueye.INT(8)
+            bytes_per_pixel = int(nBitsPerPixel / 8)
+            print("IS_COLORMODE_MONOCHROME: ", )
+            print("\tm_nColorMode: \t\t", m_nColorMode)
+            print("\tnBitsPerPixel: \t\t", nBitsPerPixel)
+            print("\tbytes_per_pixel: \t\t", bytes_per_pixel)
+            print()
+
+        else:
+            # for monochrome camera models use Y8 mode
+            m_nColorMode = ueye.IS_CM_MONO8
+            nBitsPerPixel = ueye.INT(8)
+            bytes_per_pixel = int(nBitsPerPixel / 8)
+            print("else")
+
+        # Can be used to set the size and position of an "area of interest"(AOI) within an image
+        nRet = ueye.is_AOI(hCam, ueye.IS_AOI_IMAGE_GET_AOI, rectAOI, ueye.sizeof(rectAOI))
+        if nRet != ueye.IS_SUCCESS:
+            print("is_AOI ERROR")
+
+        width = rectAOI.s32Width
+        height = rectAOI.s32Height
+
+        # Prints out some information about the camera and the sensor
+        print("Camera model:\t\t", sInfo.strSensorName.decode('utf-8'))
+        print("Camera serial no.:\t", cInfo.SerNo.decode('utf-8'))
+        print("Maximum image width:\t", width)
+        print("Maximum image height:\t", height)
+        print()
+
+        # ---------------------------------------------------------------------------------------------------------------------------------------
+
+        # Allocates an image memory for an image having its dimensions defined by width and height and its color depth defined by nBitsPerPixel
+        nRet = ueye.is_AllocImageMem(hCam, width, height, nBitsPerPixel, pcImageMemory, MemID)
+        print(hCam, width, height, nBitsPerPixel, pcImageMemory, MemID)
+        if nRet != ueye.IS_SUCCESS:
+            print("is_AllocImageMem ERROR")
+        else:
+            # Makes the specified image memory the active memory
+            nRet = ueye.is_SetImageMem(hCam, pcImageMemory, MemID)
+            if nRet != ueye.IS_SUCCESS:
+                print("is_SetImageMem ERROR")
+            else:
+                # Set the desired color mode
+                nRet = ueye.is_SetColorMode(hCam, m_nColorMode)
+                # nRet = ueye.is_SetColorMode(self.hCam, ueye.IS_CM_BGRA8_PACKED)
+
+        # Activates the camera's live video mode (free run mode)
+        nRet = ueye.is_CaptureVideo(hCam, ueye.IS_DONT_WAIT)
+        if nRet != ueye.IS_SUCCESS:
+            print("is_CaptureVideo ERROR")
+
+        nRet = ueye.is_InquireImageMem(hCam, pcImageMemory, MemID, width, height, nBitsPerPixel, pitch)
+
+        if nRet != ueye.IS_SUCCESS:
+            print("is_InquireImageMem ERROR")
+        else:
+            print("Press q to leave the programm")
 
         init_events = ueye.IS_INIT_EVENT()
         init_events.nEvent = ueye.IS_SET_EVENT_FRAME
         init_events.bManualReset = False
         init_events.bInitialState = False
-        ueye.is_Event(self.hCam, ueye.IS_EVENT_CMD_INIT, init_events, ueye.sizeof(init_events))
+        ueye.is_Event(hCam, ueye.IS_EVENT_CMD_INIT, init_events, ueye.sizeof(init_events))
 
         events = ueye.c_uint(ueye.IS_SET_EVENT_FRAME)
-        ueye.is_Event(self.hCam, ueye.IS_EVENT_CMD_ENABLE, events, ueye.sizeof(events))
+        ueye.is_Event(hCam, ueye.IS_EVENT_CMD_ENABLE, events, ueye.sizeof(events))
 
         self.wait_events = ueye.IS_WAIT_EVENT()
         self.wait_events.nEvent = ueye.IS_SET_EVENT_FRAME
@@ -62,144 +210,27 @@ class Thread_show_image(QThread):
         self.wait_events.nTimeoutMilliseconds = 1000
         self.wait_events.nSignaled = 0
         self.wait_events.nSetCount = 0
-        self.bytes_per_pixel = int(nBitsPerPixel / 8)
 
-        nRet = ueye.is_AllocImageMem(self.hCam, width, height, nBitsPerPixel, self.pcImageMemory, self.MemID)
-
-        if nRet != ueye.IS_SUCCESS:
-            print("is_AllocImageMem ERROR")
-        else:
-            # Makes the specified image memory the active memory
-            nRet = ueye.is_SetImageMem(self.hCam, self.pcImageMemory, self.MemID)
-            if nRet != ueye.IS_SUCCESS:
-                print("is_SetImageMem ERROR")
-            else:
-                # Set the desired color mode
-                nRet = ueye.is_SetColorMode(self.hCam, ueye.int(0))
-
-        nRet = ueye.is_CaptureVideo(self.hCam, ueye.IS_DONT_WAIT)
-        if nRet != ueye.IS_SUCCESS:
-            print("is_CaptureVideo ERROR")
-
-        nRet = ueye.is_InquireImageMem(self.hCam, self.pcImageMemory, self.MemID, width, height, nBitsPerPixel, self.pitch)
-        if nRet != ueye.IS_SUCCESS:
-            print("is_InquireImageMem ERROR")
-
-    def continue_save_img(self):
-        self.tmp = []
-        self.flag_save = True
-        self.max_img = 5
-
-    def save_img(self):
-        for i in range(len(self.tmp)):
-            cv2.imwrite(f"{i}.jpg", self.tmp[i])
-
-    def run(self):
-
-        while True:
-            ret = ueye.is_Event(self.hCam, ueye.IS_EVENT_CMD_WAIT, self.wait_events, ueye.sizeof(self.wait_events))
-            if (ueye.IS_SET_EVENT_FRAME == self.wait_events.nSignaled):
-                array = ueye.get_data(self.pcImageMemory, self.width, self.height, self.nBitsPerPixel, self.pitch, copy=False)
-                frame = np.reshape(array, (self.height.value, self.width.value, self.bytes_per_pixel))
-                # print((self.height.value, self.width.value, self.bytes_per_pixel))
-                qImg = QImage(frame, self.width.value, self.height.value, QImage.Format_RGB888)
-                qImg = qImg.scaled(int(self.width.value / 2), int(self.height.value / 2))
-                qpxmp = QPixmap.fromImage(qImg)
-                if self.flag_save:
-                    self.tmp.append(frame)
-                    if len(self.tmp) > self.max_img:
-                        self.flag_save = False
-                        self.save_img()
-                self.send_image.emit(qpxmp)
-                if self.stop_thread:
-                    break
-                self.wait(200)
-
-    def stop_thr(self):
-        self.stop_thread = True
-        # Ret = ueye.is_FreeImageMem(self.hCam, self.pcImageMemory, self.MemID)
-
-
-class Thread_count(QThread):
-    test_signal = pyqtSignal(QPixmap)
-
-    def __init__(self, hcam, width, height, sInfo, m_vpcSeqImgMem, bufeersize, nBitsPerPixel, parent=None):
-        QThread.__init__(self, parent)
-        self.hCam = hcam
+        # pcImageMemory, width, height, nBitsPerPixel, pitch
         self.width = width
         self.height = height
-        self.sInfo = sInfo
-        self.m_vpcSeqImgMem = m_vpcSeqImgMem
-        self.bufeersize = bufeersize
+        self.pcImageMemory = pcImageMemory
         self.nBitsPerPixel = nBitsPerPixel
-        self.pitch = ueye.INT()
+        self.pitch = pitch
+        self.bytes_per_pixel = bytes_per_pixel
+        self.MemID = MemID
 
-    def run(self):
-        width = self.sInfo.nMaxWidth
-        height = self.sInfo.nMaxHeight
-        # create an event of camera
-        ueye.is_EnableEvent(self.hCam, ueye.IS_SET_EVENT_FRAME)
-        # ueye.is_FreezeVideo(self.hCam, ueye.IS_DONT_WAIT)
-        count = 0
-        # count the frame ret
-        if platform.system() == "Windows":
-            try:
-                import win32event
-                import ctypes
-                hEvent = win32event.CreateEvent(None, False, False, None)
-                hEvent_FL = int(hEvent)
-                pEvent_FL = ueye.c_void_p(hEvent_FL)
-                # hEvent = ueye.c_void_p()
-                ueye.is_InitEvent(self.hCam, pEvent_FL, ueye.IS_SET_EVENT_FRAME)
-            except ImportError:
-                print("error")
+    def stop_camera(self):
+        # Releases an image memory that was allocated using is_AllocImageMem() and removes it from the driver management
+        net = ueye.is_FreeImageMem(self.hCam, self.pcImageMemory, self.MemID)
+        print(net)
 
-        while True:
-            iImageID = ueye.c_int(0)
-            pBuffer = ueye.c_mem_p()
+        # Disables the hCam camera handle and releases the data structures and memory areas taken up by the uEye camera
+        net = ueye.is_ExitCamera(self.hCam)
+        print(net)
 
-            if platform.system() == "Linux":
-                nRet = ueye.is_WaitEvent(self.hCam, ueye.IS_SET_EVENT_FRAME, 1000)
-            elif platform.system() == "Windows":
-                nRet = None
-
-                dwRet = ctypes.windll.kernel32.WaitForSingleObject(pEvent_FL, 1000)
-
-                # TODO: need to check how to use event
-            if nRet == ueye.IS_SUCCESS or dwRet == win32event.WAIT_OBJECT_0:
-
-                self.array = ueye.get_data(self.m_vpcSeqImgMem[count - 1], self.width, self.height,
-                                      24, 12312, copy=False)
-                frame = np.reshape(self.array, (self.height.value, self.width.value, 3))
-                # ...resize the image by a half
-                qImg = QImage(frame, self.width.value, self.height.value, QImage.Format_RGB888) # Format_Grayscale8
-                # qImg = qImg.scaled(int(self.width.value / 2), int(self.height.value / 2))
-                qpxmp = QPixmap.fromImage(qImg)
-                self.test_signal.emit(qpxmp)
-                ueye.is_UnlockSeqBuf(self.hCam, iImageID, pBuffer)
-                count = count + 1
-
-                if platform.system() == "Windows":
-                    if dwRet == win32event.WAIT_TIMEOUT:  # win32event.WAIT_FAILED
-                        print("timeout in windows")
-                        break
-                elif platform.system() == "Linux":
-                    if nRet != ueye.IS_SUCCESS:
-                        print(f"error code {nRet}")
-                        break
-
-            if count >= self.bufeersize:
-                print(f"this is test {len(self.m_vpcSeqImgMem)}")
-                # ueye.is_FreezeVideo(self.hCam, ueye.IS_WAIT)
-                ueye.is_FreezeVideo(self.hCam, ueye.IS_DONT_WAIT)
-                break
-            # i = i + 1
-        ueye.is_DisableEvent(self.hCam, ueye.IS_SET_EVENT_FRAME)
-        if platform.system() == "Windows" and pEvent_FL != None:
-            ueye.is_ExitEvent(self.hCam, ueye.IS_SET_EVENT_FRAME)
-            # import win32api
-            # win32api.CloseHandle(hEvent)
-            ctypes.windll.Kernel32.CloseHandle(pEvent_FL)
+    def stop(self):
+        self.running = False
 
 
 class MainWindow(QMainWindow):
@@ -212,92 +243,14 @@ class MainWindow(QMainWindow):
         # self.__init_setting()
         # self._add_action()
         self.show()
-
-        self._init_ids_camera(0)
-        nRet = ueye.is_InitCamera(self.hCam, None)
-        if nRet == 3:
-            print("Do not find the camera")
-            print("Please insert the cable to the computer")
-            exit()
-
+        # self.labeltest = QLabel()
         self.liveframe = None
         self.bufeersize = None
         # ueye.is_SetColorMode(self.hCam, ueye.IS_CM_RGB8_PACKED)
         self.m_viSeqMemID = []
         self.m_vpcSeqImgMem = []
-        # self.signal1.connect(self.update_image)
+        # self.labeltest.show()
 
-        # self.image_thread = Thread_show_image(self.hCam, self.width, self.height, self.sInfo, self.nBitsPerPixel)
-        # self.image_thread.start()
-        # self.image_thread.send_image.connect(self.update_image)
-
-    def _init_ids_camera(self, camera_ids):
-        self.hCam = ueye.HIDS(camera_ids)  # 0: first available camera;  1-254: The camera with the specified camera ID
-        self.sInfo = ueye.SENSORINFO()
-        self.cInfo = ueye.CAMINFO()
-        self.pcImageMemory = ueye.c_mem_p()
-        self.MemID = ueye.int()
-        self.rectAOI = ueye.IS_RECT()
-        self.width = ueye.int(4104)   # 相機解析度
-        self.height = ueye.int(2174)  # 相機解析度
-        self.pitch = ueye.INT()
-        self.nBitsPerPixel = ueye.INT(32)  # 24: bits per pixel for color mode; take 8 bits per pixel for monochrome
-        channels = 3  # 3: channels for color mode(RGB); take 1 channel for monochrome
-        self.m_nColorMode = ueye.INT(0)  # Y8/RGB16/RGB24/REG32
-        self.bytes_per_pixel = int(self.nBitsPerPixel / 8)
-        self.m_buffer_init = 0
-        self.fps_second = ueye.DOUBLE()
-        self.exposure_time_max = ueye.DOUBLE()
-        self.exposure_time_min = ueye.DOUBLE()
-        self.gainFactor = ueye.DOUBLE()
-        self.maxFrame = ueye.DOUBLE()
-        self.miniFrame = ueye.DOUBLE()
-        self.intervallFrame = ueye.DOUBLE()
-
-    def camSeqBuild(self):
-        bRet = False
-        FrameTimeMin = ueye.c_double()
-        FrameTimeMax = ueye.c_double()
-        FrameTimeIntervall = ueye.c_double()
-        nRet = ueye.is_GetFrameTimeRange(self.hCam, FrameTimeMin, FrameTimeMax, FrameTimeIntervall)
-        # nRet = 0
-        if nRet == ueye.IS_SUCCESS:
-            # print(FrameTimeMin)
-            maxBuffer = (1 / FrameTimeMin) + 0.5
-            # print(maxBuffer)
-            if maxBuffer < 3:
-                nmaxbuffer = 3
-            else:
-                nmaxbuffer = self.bufeersize
-
-        imageSize = ueye.IS_RECT()
-        nRet = ueye.is_AOI(self.hCam, ueye.IS_AOI_IMAGE_GET_AOI, imageSize, ueye.sizeof(imageSize))
-        self.width = imageSize.s32Width
-        self.height = imageSize.s32Height
-
-        # allocate buffer (memory) in a for-loop
-        for i in range(0, nmaxbuffer):
-
-            iImageID = ueye.c_int(0)
-            pcImhMem = ueye.c_mem_p()
-
-            nRet = ueye.is_AllocImageMem(self.hCam, self.width, self.height, self.nBitsPerPixel, pcImhMem, iImageID)
-            if nRet != ueye.IS_SUCCESS:
-                break
-            nRet = ueye.is_AddToSequence(self.hCam, pcImhMem, iImageID)
-            if nRet != ueye.IS_SUCCESS:
-                ueye.is_FreeImageMem(self.hCam, pcImhMem, iImageID)
-                break
-
-            self.m_viSeqMemID.append(iImageID)
-            self.m_vpcSeqImgMem.append(pcImhMem)
-
-        # nRet = ueye.is_InitImageQueue(hCam, 0)
-        if nRet == ueye.IS_SUCCESS:
-            bRet = True
-        else:
-            bRet = False
-        return bRet
 
     @pyqtSlot()
     def on_testbtn_clicked(self):
@@ -308,16 +261,25 @@ class MainWindow(QMainWindow):
     @pyqtSlot()
     def on_openlive_clicked(self):
         print("open live mode")
-        self.image_thread = Thread_show_image(self.hCam, self.width, self.height, self.sInfo, self.nBitsPerPixel)
-        self.image_thread.start()
-        self.image_thread.send_image.connect(self.update_image)
+        self.camera_thread = CameraThread(0)
+        self.camera_thread.update_frame.connect(self.update_image)
+        self.camera_thread.start()
+        # self.image_thread = Thread_show_image(self.hCam, self.width, self.height, self.sInfo, self.nBitsPerPixel)
+        # self.image_thread = Thread_show_image(self.hCam, self.width, self.height, self.nBitsPerPixel, self.pcImageMemory, self.MemID)
+        print("Process")
+        # print(self.hCam, self.width, self.height, self.sInfo, self.nBitsPerPixel)
+        # self.image_thread.start()
+        # self.image_thread.send_image.connect(self.update_image)
 
     @pyqtSlot()
     def on_close_live_clicked(self):
         print("close the live mode")
-        self.image_thread.stop_thr()
-        self.image_thread.exec_()
-        ueye.is_ExitCamera(self.hCam)
+        self.camera_thread.stop()
+        print("Close event")
+        # self.camera_thread.wait()
+        # self.image_thread.stop_thr()
+        # self.image_thread.exec_()
+        # ueye.is_ExitCamera(self.hCam)
 
     def all_process(self):
         """This function connect all process"""
@@ -366,18 +328,11 @@ class MainWindow(QMainWindow):
             parameter.nFileType = ueye.IS_IMG_JPG
             ueye.is_ImageFile(self.hCam, ueye.IS_IMAGE_FILE_CMD_SAVE, parameter, ueye.sizeof(parameter))
 
-    def CamSeqKill(self):
-        # ueye.is_ExitImageQueue(hCam)
-        ueye.is_ClearSequence(self.hCam)
-        # Free buffer
-        for i in range(0, len(self.m_viSeqMemID)):
-            Ret = ueye.is_FreeImageMem(self.hCam, self.m_vpcSeqImgMem[i], self.m_viSeqMemID[i])
-        self.m_vpcSeqImgMem.clear()
-        self.m_viSeqMemID.clear()
-
     def update_image(self, data):
         self.image1.setPixmap(data)
         self.image1.setScaledContents(True)
+        # self.labeltest.setPixmap(data)
 
-    def closeEvent(self, *args, **kwargs):
-        self.image_thread.stop_thr()
+
+    # def closeEvent(self, *args, **kwargs):
+    #     self.image_thread.stop_thr()
