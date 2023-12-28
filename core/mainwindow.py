@@ -23,6 +23,8 @@ import datetime
 import ctypes
 import struct
 
+from core.serial_core.serialportcontext import SerialPortContext
+
 # check for install the ids camera sdk
 try:
     from pyueye import ueye
