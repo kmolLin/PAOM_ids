@@ -245,6 +245,7 @@ class MainWindow(QMainWindow):
         # self._add_action()
         self.show()
         self.current_image = None
+        self.camera_thread = None
 
 
     @pyqtSlot()
@@ -293,8 +294,9 @@ class MainWindow(QMainWindow):
         self.current_image = img_data
 
     def closeEvent(self, *args, **kwargs):
-       if self.camera_thread.isRunning():
-           self.camera_thread.stop()
-       else:
-           pass
+       if self.camera_thread != None:
+           if self.camera_thread.isRunning():
+               self.camera_thread.stop()
+           else:
+               pass
 
