@@ -269,14 +269,6 @@ class MainWindow(QMainWindow):
         print("Close event")
 
 
-    def savve(self):
-        # save image
-        folder_name = datetime.datetime.now().strftime("%Y_%m_%d-%H%M")
-        # os.mkdir(f"{folder_name}")
-        # self.save_img(self.m_vpcSeqImgMem, self.m_viSeqMemID, folder_name)
-
-        self.CamSeqKill()
-
     def save_img(self, mem, iImageID, folder_name: str):
         print(len(mem))
         plast = ueye.c_mem_p()
@@ -303,4 +295,4 @@ class MainWindow(QMainWindow):
            self.camera_thread.stop()
        else:
            pass
-       # self.image_thread.stop_thr()
+
