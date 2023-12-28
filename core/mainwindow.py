@@ -250,6 +250,7 @@ class MainWindow(QMainWindow):
         print("current data")
         print(self.current_image.shape)
         print(self.current_image)
+        cv2.imwrite("test.jpg", self.current_image)
 
     @pyqtSlot()
     def on_openlive_clicked(self):
@@ -267,31 +268,6 @@ class MainWindow(QMainWindow):
         self.camera_thread.stop()
         print("Close event")
 
-
-    def all_process(self):
-        """This function connect all process"""
-        pass
-        # # Build Camera Sequence
-        # self.bufeersize = 100 # self.number_of_shots.value()
-        # bRet = self.camSeqBuild()
-        #
-        # if bRet is True:
-        #     print("IS_SUCCESS")
-        # else:
-        #     self.CamSeqKill()
-        #     ueye.is_ExitCamera(self.hCam)
-        #     print("Error")
-        #
-        # # build thread
-        # # t = threading.Thread(target=self.job)
-        # ueye.is_CaptureVideo(self.hCam, ueye.IS_DONT_WAIT)
-        # # ueye.is_CaptureVideo(self.hCam, ueye.IS_DONT_WAIT)
-        #
-        # self.test_thread = Thread_count(self.hCam, self.width, self.height, self.sInfo, self.m_vpcSeqImgMem,
-        #                                 self.bufeersize, self.nBitsPerPixel)
-        # self.test_thread.test_signal.connect(self.update_image)
-        # self.test_thread.finished.connect(self.savve)
-        # self.test_thread.start()
 
     def savve(self):
         # save image
