@@ -61,8 +61,8 @@
              <string/>
             </property>
             <property name="icon">
-             <iconset resource="../images/icon.qrc">
-              <normaloff>:/icon/arrow_right_up.png</normaloff>:/icon/arrow_right_up.png</iconset>
+             <iconset>
+              <normaloff>../images/arrow_right_up.png</normaloff>../images/arrow_right_up.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -81,8 +81,8 @@
              <string/>
             </property>
             <property name="icon">
-             <iconset resource="../images/icon.qrc">
-              <normaloff>:/icon/arrow_left_up.png</normaloff>:/icon/arrow_left_up.png</iconset>
+             <iconset>
+              <normaloff>../images/arrow_left_up.png</normaloff>../images/arrow_left_up.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -101,8 +101,8 @@
              <string/>
             </property>
             <property name="icon">
-             <iconset resource="../images/icon.qrc">
-              <normaloff>:/icon/arrow-up-b.png</normaloff>:/icon/arrow-up-b.png</iconset>
+             <iconset>
+              <normaloff>../images/arrow-up-b.png</normaloff>../images/arrow-up-b.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -124,8 +124,8 @@
              <string/>
             </property>
             <property name="icon">
-             <iconset resource="../images/icon.qrc">
-              <normaloff>:/icon/arrow-down-b.png</normaloff>:/icon/arrow-down-b.png</iconset>
+             <iconset>
+              <normaloff>../images/arrow-down-b.png</normaloff>../images/arrow-down-b.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -144,8 +144,8 @@
              <string/>
             </property>
             <property name="icon">
-             <iconset resource="../images/icon.qrc">
-              <normaloff>:/icon/arrow-right-b.png</normaloff>:/icon/arrow-right-b.png</iconset>
+             <iconset>
+              <normaloff>../images/arrow-right-b.png</normaloff>../images/arrow-right-b.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -164,8 +164,8 @@
              <string/>
             </property>
             <property name="icon">
-             <iconset resource="../images/icon.qrc">
-              <normaloff>:/icon/arrow-left-b.png</normaloff>:/icon/arrow-left-b.png</iconset>
+             <iconset>
+              <normaloff>../images/arrow-left-b.png</normaloff>../images/arrow-left-b.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -204,8 +204,8 @@
              <string/>
             </property>
             <property name="icon">
-             <iconset resource="../images/icon.qrc">
-              <normaloff>:/icon/arrow-up-a.png</normaloff>:/icon/arrow-up-a.png</iconset>
+             <iconset>
+              <normaloff>../images/arrow-up-a.png</normaloff>../images/arrow-up-a.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -224,8 +224,8 @@
              <string/>
             </property>
             <property name="icon">
-             <iconset resource="../images/icon.qrc">
-              <normaloff>:/icon/arrow_right_down.png</normaloff>:/icon/arrow_right_down.png</iconset>
+             <iconset>
+              <normaloff>../images/arrow_right_down.png</normaloff>../images/arrow_right_down.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -244,8 +244,8 @@
              <string/>
             </property>
             <property name="icon">
-             <iconset resource="../images/icon.qrc">
-              <normaloff>:/icon/arrow_leftdown.png</normaloff>:/icon/arrow_leftdown.png</iconset>
+             <iconset>
+              <normaloff>../images/arrow_leftdown.png</normaloff>../images/arrow_leftdown.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -264,8 +264,8 @@
              <string/>
             </property>
             <property name="icon">
-             <iconset resource="../images/icon.qrc">
-              <normaloff>:/icon/arrow-down-a.png</normaloff>:/icon/arrow-down-a.png</iconset>
+             <iconset>
+              <normaloff>../images/arrow-down-a.png</normaloff>../images/arrow-down-a.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -508,7 +508,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QPushButton" name="test_focus_btn">
+           <widget class="QPushButton" name="serial_connect_btn">
             <property name="text">
              <string>Serial_connect</string>
             </property>

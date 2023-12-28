@@ -12,6 +12,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5.uic import loadUi
 from PyQt5.QtCore import pyqtSlot
 from ids_peak import ids_peak
+from .classes import Thread_wait_forController, Thread_slect_focus, Thread_scale_image
 
 import platform
 import numpy as np
@@ -237,6 +238,7 @@ class CameraThread(QThread):
 class MainWindow(QMainWindow):
 
     signal1 = pyqtSignal()
+    _receive_signal = pyqtSignal(str)
 
     def __init__(self, parent = None):
         super(MainWindow, self).__init__()
@@ -246,6 +248,21 @@ class MainWindow(QMainWindow):
         self.show()
         self.current_image = None
         self.camera_thread = None
+
+        self.wait_controler = Thread_wait_forController()
+        # self.test_pixmap.connect(self.wait_controler.inputimage)
+
+        self.brain_focus = Thread_slect_focus(self.wait_controler, use_ai=True)
+        # self.test_pixmap.connect(self.brain_focus.ttt)
+
+        self.zoom_command = Thread_scale_image(self.wait_controler)
+
+        # self.wait_controler.laplacian_signal.connect(self.brain_focus.get_laplacin_value)
+        # self.wait_controler.zoomcommand_signal.connect(self.zoom_command.get_image)
+        self.count = 0
+
+        self._serial_context_ = SerialPortContext(port="COM5", baud=0)
+        self._receive_signal.connect(self.wait_controler.test_received)
 
 
     @pyqtSlot()
@@ -264,6 +281,101 @@ class MainWindow(QMainWindow):
         self.camera_thread.start()
 
         print("Process")
+
+    @pyqtSlot()
+    def on_serial_connect_btn_clicked(self):
+        if self._serial_context_.isRunning():
+            self._serial_context_.close()
+        else:
+            try:
+                port = self.com_comboBox.currentText()
+                baud = int(self.serial_comboBox.currentText())
+                self._serial_context_ = SerialPortContext(port=port, baud=baud)
+                self._serial_context_.recall()
+                self._serial_context_.registerReceivedCallback(self.__data_received__)
+                self._serial_context_.open()
+                self.wait_controler.get_serial_handle(self._serial_context_)
+                # start the the button
+                self._serial_button_Setting()
+                self.run_servo.setEnabled(True)
+                self.servo_slider.setEnabled(True)
+                self.ttmp = "123"
+            except:
+                pass
+                # QMessageBox.critical(self, f"error", u"can't open the comport,please check!")
+
+    def _serial_button_Setting(self):
+
+        tmp = {
+            self.left_up: [-1, 1],
+            self.yAxisup: [0, 1],
+            self.right_up: [1, 1],
+            self.xAxisrigh: [1, 0],
+            self.right_down: [1, -1],
+            self.yAxisdown: [0, -1],
+            self.left_down: [-1, -1],
+            self.xAxisleft: [-1, 0],
+        }
+        self.numberz = self.stepbox.value()
+
+        def make_func(btn):
+            @pyqtSlot()
+            def dynamic():
+                x = f"{tmp[btn][0] * self.stepbox.value()}"
+                y = f"{tmp[btn][1] * self.stepbox.value()}"
+                f = self.feedbox.value()
+                data = f"G91\nG1X{x}Y{y}F{f}\nG90\nM114\n"
+                self.__test__send(data)
+            return dynamic
+        for i, btn in enumerate(tmp):
+            btn.setEnabled(True)
+            f = make_func(btn)
+            btn.clicked.connect(f)
+            # print(btn, f"-> {tmp[btn]}")
+
+        tmps = {
+            self.machine_homex_btn: "X",
+            self.machine_homey_btn: "Y",
+            self.machine_homez_btn: "Z",
+        }
+
+        def make_func_home(btn):
+            @pyqtSlot()
+            def d():
+                data = f"G28 {tmps[btn]}0\n"
+                self.__test__send(data)
+            return d
+
+        for i, btn in enumerate(tmps):
+            btn.setEnabled(True)
+            f = make_func_home(btn)
+            btn.clicked.connect(f)
+
+        tmps1 = {
+            self.zupButton: 1,
+            self.zdownButton: -1
+        }
+
+        def make_z_move(btn):
+            @pyqtSlot()
+            def dynamic():
+                z = f"{tmps1[btn] * self.stepbox.value()}"
+                f = self.feedbox.value()
+                data = f"G91\nG1Z{z}F{f}\nG90\nM114\n"
+                self.__test__send(data)
+            return dynamic
+
+        for i, btn in enumerate(tmps1):
+            btn.setEnabled(True)
+            f = make_z_move(btn)
+            btn.clicked.connect(f)
+
+    def __test__send(self, data1):
+        data = str(data1 + '\n')
+        if self._serial_context_.isRunning():
+            if len(data) > 0:
+                # print(data)
+                self._serial_context_.send(data, 0)
 
     @pyqtSlot()
     def on_close_live_clicked(self):
