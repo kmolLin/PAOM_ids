@@ -843,7 +843,7 @@
         <widget class="QPushButton" name="testbtn">
          <property name="geometry">
           <rect>
-           <x>760</x>
+           <x>700</x>
            <y>190</y>
            <width>93</width>
            <height>28</height>
@@ -856,7 +856,7 @@
         <widget class="QPushButton" name="openlive">
          <property name="geometry">
           <rect>
-           <x>750</x>
+           <x>690</x>
            <y>240</y>
            <width>93</width>
            <height>28</height>
@@ -869,7 +869,7 @@
         <widget class="QPushButton" name="close_live">
          <property name="geometry">
           <rect>
-           <x>750</x>
+           <x>690</x>
            <y>290</y>
            <width>93</width>
            <height>28</height>
@@ -878,6 +878,48 @@
          <property name="text">
           <string>close live</string>
          </property>
+        </widget>
+        <widget class="QWidget" name="horizontalLayoutWidget_4">
+         <property name="geometry">
+          <rect>
+           <x>470</x>
+           <y>550</y>
+           <width>259</width>
+           <height>80</height>
+          </rect>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayout_2">
+          <item>
+           <widget class="QLabel" name="label_10">
+            <property name="text">
+             <string>設定相機倍率</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QDoubleSpinBox" name="len_man_double_2">
+            <property name="decimals">
+             <number>1</number>
+            </property>
+            <property name="minimum">
+             <double>0.700000000000000</double>
+            </property>
+            <property name="maximum">
+             <double>4.500000000000000</double>
+            </property>
+            <property name="singleStep">
+             <double>0.100000000000000</double>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="magitunde_btn">
+            <property name="text">
+             <string>倍率調整</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </widget>
       </item>

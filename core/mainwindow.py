@@ -404,6 +404,16 @@ class MainWindow(QMainWindow):
             parameter.nFileType = ueye.IS_IMG_JPG
             ueye.is_ImageFile(self.hCam, ueye.IS_IMAGE_FILE_CMD_SAVE, parameter, ueye.sizeof(parameter))
 
+    @pyqtSlot()
+    def on_magitunde_btn_clicked(self):
+        # check if the link is online
+        # 20231226
+        manguted = self.len_man_double_2.value()
+        path_locate = "core/control_camera_mag/"
+        initial_rate = int(manguted * 100)  # 您可以將此值更改為任何初始倍率
+        with open(f'{path_locate}/trigger_file.txt', 'w') as file:
+            file.write(str(initial_rate))
+
     def update_image(self, data):
         """
         顯示圖片在主畫面
