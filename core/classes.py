@@ -19,29 +19,29 @@ from core.template_matching import loadimage_process
 from core.ai_detected.run_model import LoadAIModel
 
 
-def converte_pixmap2array(dispBuffer):
+# def converte_pixmap2array(dispBuffer):
+#
+#     channels_count = 4
+#     # dispBuffer.pixmap.save("test.jpg")
+#     image = dispBuffer.pixmap.toImage()
+#     image = image.convertToFormat(QImage.Format.Format_RGBA8888)
+#     size = image.size()
+#     s = image.bits().asstring(size.width() * size.height() * image.depth() // 8)  # format 0xffRRGGBB
+#     arr = np.fromstring(s, dtype=np.uint8).reshape((size.height(), size.width(), image.depth() // 8))
+#     R, G, B, D = cv2.split(arr)
+#     BGR_image = cv2.merge([B, G, R])
+#     return BGR_image
 
-    channels_count = 4
-    # dispBuffer.pixmap.save("test.jpg")
-    image = dispBuffer.pixmap.toImage()
-    image = image.convertToFormat(QImage.Format.Format_RGBA8888)
-    size = image.size()
-    s = image.bits().asstring(size.width() * size.height() * image.depth() // 8)  # format 0xffRRGGBB
-    arr = np.fromstring(s, dtype=np.uint8).reshape((size.height(), size.width(), image.depth() // 8))
-    R, G, B, D = cv2.split(arr)
-    BGR_image = cv2.merge([B, G, R])
-    return BGR_image
-
-
-def conver_qimage2array(img: QImage):
-
-    image = img.convertToFormat(QImage.Format.Format_RGBA8888)
-    size = image.size()
-    s = image.bits().asstring(size.width() * size.height() * image.depth() // 8)  # format 0xffRRGGBB
-    arr = np.fromstring(s, dtype=np.uint8).reshape((size.height(), size.width(), image.depth() // 8))
-    R, G, B, D = cv2.split(arr)
-    BGR_image = cv2.merge([B, G, R])
-    return BGR_image
+#
+# def conver_qimage2array(img: QImage):
+#
+#     image = img.convertToFormat(QImage.Format.Format_RGBA8888)
+#     size = image.size()
+#     s = image.bits().asstring(size.width() * size.height() * image.depth() // 8)  # format 0xffRRGGBB
+#     arr = np.fromstring(s, dtype=np.uint8).reshape((size.height(), size.width(), image.depth() // 8))
+#     R, G, B, D = cv2.split(arr)
+#     BGR_image = cv2.merge([B, G, R])
+#     return BGR_image
 
 
 class Thread_slect_focus(QThread):
@@ -142,6 +142,19 @@ class Thread_slect_focus(QThread):
         self.laplacian = laplacian
         self.image_arr = image
         # print(laplacian)
+
+    def algorithm_detected(self):
+        # find the cutting edges
+        # 第一步 找到刀刃大概的位置
+
+        # 第二步 自動旋轉尋找刀刃
+
+        # 第三步 自動對焦和倍率調整
+
+        # 第四步 磨損位置的確定與拍攝
+
+        # 第五步 重複以上步驟進行多刃的拍攝
+        pass
 
 
 class Thread_scale_image(QThread):
