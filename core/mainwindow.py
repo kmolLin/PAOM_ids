@@ -389,20 +389,19 @@ class MainWindow(QMainWindow):
         self.camera_thread.stop()
         print("Close event")
 
-
-    def save_img(self, mem, iImageID, folder_name: str):
-        print(len(mem))
-        plast = ueye.c_mem_p()
-
-        for i in range(0, len(mem)):
-            # process the pointer memory translate to image
-            # TODO: add process on get data form image
-
-            parameter = ueye.IMAGE_FILE_PARAMS(ppcImageMem=mem[i], pnImageID=iImageID[i])
-            parameter.pwchFileName = f"{folder_name}/{i}.jpeg"
-            parameter.nQuality = 0
-            parameter.nFileType = ueye.IS_IMG_JPG
-            ueye.is_ImageFile(self.hCam, ueye.IS_IMAGE_FILE_CMD_SAVE, parameter, ueye.sizeof(parameter))
+    # def save_img(self, mem, iImageID, folder_name: str):
+    #     print(len(mem))
+    #     plast = ueye.c_mem_p()
+    #
+    #     for i in range(0, len(mem)):
+    #         # process the pointer memory translate to image
+    #         # TODO: add process on get data form image
+    #
+    #         parameter = ueye.IMAGE_FILE_PARAMS(ppcImageMem=mem[i], pnImageID=iImageID[i])
+    #         parameter.pwchFileName = f"{folder_name}/{i}.jpeg"
+    #         parameter.nQuality = 0
+    #         parameter.nFileType = ueye.IS_IMG_JPG
+    #         ueye.is_ImageFile(self.hCam, ueye.IS_IMAGE_FILE_CMD_SAVE, parameter, ueye.sizeof(parameter))
 
     @pyqtSlot()
     def on_magitunde_btn_clicked(self):
