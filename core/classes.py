@@ -47,7 +47,7 @@ def conver_qimage2array(img: QImage):
 class Thread_slect_focus(QThread):
     classifier_img = pyqtSignal(object)
 
-    def __init__(self, send_thread_handle, use_ai=False,parent=None):
+    def __init__(self, send_thread_handle, use_ai=False, parent=None):
         QThread.__init__(self, parent)
         self.send_thread = send_thread_handle
         self.image_arr = None
@@ -69,20 +69,27 @@ class Thread_slect_focus(QThread):
 
         # test for continue get image from array
         data = f"G91\nG1E1300F{1000}\nG90\nM114\n"
-        self.send_thread.motion_step = [data]
-        self.send_thread.start()
+        # 透過 send thread motion_step 進行指令傳送
+        # self.send_thread.motion_step = [data]
+        # self.send_thread.start()
+        print("傳送指令開始")
+        print(data)
         self.msleep(200)
         t = time.localtime()
         current_time = time.strftime("%Y_%m_%d_%H_%M_%S", t)
-        folder_path = f"C:/Users/smpss/kmol/save_img_experiment/{current_time}"
+        folder_path = f"tmp/{current_time}"
         os.mkdir(folder_path)
-        for i in range(100):
-            self.tet.pixmap.save(f"{folder_path}/{i:03d}.bmp")
+        for i in range(30):
+            # print(self.send_thread.image_arr)
+            print(f"儲存照片 {i} 張")
+            img = self.send_thread.image_arr
+            cv2.imwrite(f"{folder_path}/{i:03d}.bmp", img)
+            # self.tet.pixmap.save(f"{folder_path}/{i:03d}.bmp")
             # cv2.imwrite(f"{folder_path}/{i:03d}.bmp", self.image_arr)
             self.msleep(200)
 
-        files = os.listdir(folder_path)
-        files.sort(key=lambda x: os.path.getmtime(f"{folder_path}/{x}"))
+        # files = os.listdir(folder_path)
+        # files.sort(key=lambda x: os.path.getmtime(f"{folder_path}/{x}"))
         merge_padding = 10
 
         # result = loadimage_process(folder_path, files, merge_padding, len(files), select=0, image_perline=0)
@@ -130,13 +137,6 @@ class Thread_slect_focus(QThread):
         # self.send_thread.motion_step = [tmp.index(max(tmp)) - 15]
         # self.send_thread.start()
         # self.send_thread.wait()
-
-    # def test_save(self):
-    #     dispBuffer.pixmap.save("test.jpg")
-
-    def ttt(self, pixmap):
-        self.image_arr = converte_pixmap2array(pixmap)
-        self.tet = pixmap
 
     def get_laplacin_value(self, image, laplacian):
         self.laplacian = laplacian
@@ -257,8 +257,8 @@ class Thread_wait_forController(QThread):
         self.serial_hadle = serial_handle
 
     def inputimage(self, pixmap):
-        self.image_arr = converte_pixmap2array(pixmap)
-        # print(pixmap)
+        self.image_arr = pixmap
+        # print(self.image_arr.shape)
 
     def Laplacina(self, img):
         return cv2.Laplacian(img, cv2.CV_64F).var()

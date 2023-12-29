@@ -52,7 +52,7 @@ class CameraThread(QThread):
             ret = ueye.is_Event(self.hCam, ueye.IS_EVENT_CMD_WAIT, self.wait_events, ueye.sizeof(self.wait_events))
             if (ueye.IS_SET_EVENT_FRAME == self.wait_events.nSignaled) or frame is not None:
                 # ...extract the data of our image memory
-                array = ueye.get_data(self.pcImageMemory, self.width, self.height, self.nBitsPerPixel, self.pitch, copy=False)
+                array = ueye.get_data(self.pcImageMemory, self.width, self.height, self.nBitsPerPixel, self.pitch, copy=True)
                 # bytes_per_pixel = int(nBitsPerPixel / 8)
                 # ...reshape it in an numpy array...
                 frame = np.reshape(array, (self.height.value, self.width.value, self.bytes_per_pixel))
@@ -239,6 +239,7 @@ class MainWindow(QMainWindow):
 
     signal1 = pyqtSignal()
     _receive_signal = pyqtSignal(str)
+    receive_img = pyqtSignal(np.ndarray)
 
     def __init__(self, parent = None):
         super(MainWindow, self).__init__()
@@ -250,10 +251,9 @@ class MainWindow(QMainWindow):
         self.camera_thread = None
 
         self.wait_controler = Thread_wait_forController()
-        # self.test_pixmap.connect(self.wait_controler.inputimage)
+        self.receive_img.connect(self.wait_controler.inputimage)
 
         self.brain_focus = Thread_slect_focus(self.wait_controler, use_ai=True)
-        # self.test_pixmap.connect(self.brain_focus.ttt)
 
         self.zoom_command = Thread_scale_image(self.wait_controler)
 
@@ -294,12 +294,12 @@ class MainWindow(QMainWindow):
                 self._serial_context_.recall()
                 self._serial_context_.registerReceivedCallback(self.__data_received__)
                 self._serial_context_.open()
+                # "把 Serial 的 handle 傳進去 wait controler 進行控制"
                 self.wait_controler.get_serial_handle(self._serial_context_)
-                # start the the button
+                # 設定每個 button 的功用，前進後退等移動路徑
                 self._serial_button_Setting()
                 self.run_servo.setEnabled(True)
                 self.servo_slider.setEnabled(True)
-                self.ttmp = "123"
             except:
                 pass
                 # QMessageBox.critical(self, f"error", u"can't open the comport,please check!")
@@ -378,6 +378,12 @@ class MainWindow(QMainWindow):
                 self._serial_context_.send(data, 0)
 
     @pyqtSlot()
+    def on_automode_btn_clicked(self):
+        self.brain_focus.start()
+
+        # self.brain_focus.classifier_img.connect(self.getclassifierimage)
+
+    @pyqtSlot()
     def on_close_live_clicked(self):
         print("close the live mode")
         self.camera_thread.stop()
@@ -399,11 +405,17 @@ class MainWindow(QMainWindow):
             ueye.is_ImageFile(self.hCam, ueye.IS_IMAGE_FILE_CMD_SAVE, parameter, ueye.sizeof(parameter))
 
     def update_image(self, data):
+        """
+        顯示圖片在主畫面
+        :param data: pixmap
+        :return:
+        """
         self.image1.setPixmap(data)
         self.image1.setScaledContents(True)
 
     def update_img_data(self, img_data):
         self.current_image = img_data
+        self.receive_img.emit(img_data)
 
     def closeEvent(self, *args, **kwargs):
        if self.camera_thread != None:
