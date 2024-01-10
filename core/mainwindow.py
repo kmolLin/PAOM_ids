@@ -67,7 +67,10 @@ class CameraThread(QThread):
     def convert_to_qimage(self, frame):
         height, width, channels = frame.shape
         bytes_per_line = channels * width
-        q_image = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB32)
+        if channels == 1:
+            q_image = QImage(frame.data, width, height, bytes_per_line, QImage.Format_Grayscale8)
+        else:
+            q_image = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB32)
         # q_image.save("test.jpg")
         return q_image
 
