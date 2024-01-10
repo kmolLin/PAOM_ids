@@ -417,6 +417,20 @@ class MainWindow(QMainWindow):
         self.camera_thread.stop()
         print("Close event")
 
+    @pyqtSlot()
+    def on_move_btn_posstive_clicked(self):
+        value = self.rotate_spinbox.value()
+        f = 1500
+        data = f"G91\nG1E{value}F{f}\nG90\nM114\n"
+        self.__test__send(data)
+
+    @pyqtSlot()
+    def on_move_btn_negtive_clicked(self):
+        value = self.rotate_spinbox.value()
+        f = 1500
+        data = f"G91\nG1E-{value}F{f}\nG90\nM114\n"
+        self.__test__send(data)
+
     # def save_img(self, mem, iImageID, folder_name: str):
     #     print(len(mem))
     #     plast = ueye.c_mem_p()
@@ -440,6 +454,10 @@ class MainWindow(QMainWindow):
         initial_rate = int(manguted * 100)  # 您可以將此值更改為任何初始倍率
         with open(f'{path_locate}/trigger_file.txt', 'w') as file:
             file.write(str(initial_rate))
+
+    @pyqtSlot()
+    def on_check_btn_clicked(self):
+        cv2.imwrite(f"test_save.jpg", self.current_image)
 
     def update_image(self, data):
         """

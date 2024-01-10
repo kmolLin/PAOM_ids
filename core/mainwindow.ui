@@ -766,19 +766,16 @@
          </layout>
         </widget>
         <widget class="QLabel" name="image1">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
          <property name="geometry">
           <rect>
-           <x>960</x>
+           <x>850</x>
            <y>30</y>
-           <width>400</width>
-           <height>300</height>
+           <width>501</width>
+           <height>341</height>
           </rect>
-         </property>
-         <property name="maximumSize">
-          <size>
-           <width>400</width>
-           <height>300</height>
-          </size>
          </property>
          <property name="text">
           <string/>

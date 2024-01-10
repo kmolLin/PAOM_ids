@@ -68,25 +68,25 @@ class Thread_slect_focus(QThread):
         tmp = []
 
         # test for continue get image from array
-        data = f"G91\nG1E1300F{1000}\nG90\nM114\n"
+        data = f"G91\nG1E800F{1000}\nG90\nM114\n"
         # 透過 send thread motion_step 進行指令傳送
-        # self.send_thread.motion_step = [data]
-        # self.send_thread.start()
+        self.send_thread.motion_step = [data]
+        self.send_thread.start()
         print("傳送指令開始")
-        print(data)
+        # print(data)
         self.msleep(200)
         t = time.localtime()
         current_time = time.strftime("%Y_%m_%d_%H_%M_%S", t)
         folder_path = f"tmp/{current_time}"
         os.mkdir(folder_path)
-        for i in range(30):
+        for i in range(300):
             # print(self.send_thread.image_arr)
-            print(f"儲存照片 {i} 張")
+            # print(f"儲存照片 {i} 張")
             img = self.send_thread.image_arr
-            cv2.imwrite(f"{folder_path}/{i:03d}.bmp", img)
+            cv2.imwrite(f"{folder_path}/{i:03d}.jpg", img)
             # self.tet.pixmap.save(f"{folder_path}/{i:03d}.bmp")
             # cv2.imwrite(f"{folder_path}/{i:03d}.bmp", self.image_arr)
-            self.msleep(200)
+            # self.msleep(100)
 
         # files = os.listdir(folder_path)
         # files.sort(key=lambda x: os.path.getmtime(f"{folder_path}/{x}"))
