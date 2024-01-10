@@ -305,7 +305,32 @@ class MainWindow(QMainWindow):
                 self.servo_slider.setEnabled(True)
             except:
                 pass
+                print("Error connect")
                 # QMessageBox.critical(self, f"error", u"can't open the comport,please check!")
+
+    def __data_received__(self, data):
+        self._receive_signal.emit(data)
+        for c in range(len(data)):
+            self.textEditReceived2.insertPlainText(data[c])
+            sb = self.textEditReceived2.verticalScrollBar()
+            sb.setValue(sb.maximum())
+
+        # parser M114 X:0.00 Y:0.00 Z:0.00 E:0.00 Count X:0 Y:0 Z:0
+        if data.startswith("X:"):
+            x = data.split(" ")[0].split(":")[-1]
+            y = data.split(" ")[1].split(":")[-1]
+            z = data.split(" ")[2].split(":")[-1]
+            e = data.split(" ")[3].split(":")[-1]
+            self.x_lcdNumber.display(x)
+            self.y_lcdNumber.display(y)
+            self.z_lcdNumber.display(z)
+            self.rotate_lcd.display(e)
+
+        if data.startswith("y_min"):
+            if "open" in data:
+                pass
+            else:
+                print("trigged")
 
     def _serial_button_Setting(self):
 
